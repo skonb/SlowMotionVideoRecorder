@@ -8,7 +8,7 @@
 //
 
 #import <Foundation/Foundation.h>
-
+#import <AVFoundation/AVFoundation.h>
 
 @protocol AVCaptureManagerDelegate <NSObject>
 - (void)didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL
@@ -20,6 +20,8 @@
 
 @property (nonatomic, assign) id<AVCaptureManagerDelegate> delegate;
 @property (nonatomic, readonly) BOOL isRecording;
+@property (nonatomic, assign) AVCaptureDevicePosition devicePosition;
+@property (nonatomic, assign) AVCaptureFlashMode flashMode;
 
 - (id)initWithPreviewView:(UIView *)previewView;
 - (void)toggleContentsGravity;

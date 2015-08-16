@@ -34,9 +34,9 @@
         NSError *error;
         
         self.captureSession = [[AVCaptureSession alloc] init];
-        self.captureSession.sessionPreset = AVCaptureSessionPresetInputPriority;
+        self.captureSession.sessionPreset = AVCaptureSessionPreset1280x720;
         
-        AVCaptureDevice *videoDevice = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+        AVCaptureDevice *videoDevice = [self cameraWithPosition:_devicePosition];
         AVCaptureDeviceInput *videoIn = [AVCaptureDeviceInput deviceInputWithDevice:videoDevice error:&error];
         
         if (error) {
@@ -75,6 +75,18 @@
     return self;
 }
 
+- (AVCaptureDevice *) cameraWithPosition:(AVCaptureDevicePosition) Position
+{
+    NSArray *Devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+    for (AVCaptureDevice *Device in Devices)
+    {
+        if ([Device position] == Position)
+        {
+            return Device;
+        }
+    }
+    return nil;
+}
 
 
 // =============================================================================
@@ -99,7 +111,7 @@
         [self.captureSession stopRunning];
     }
 
-    AVCaptureDevice *videoDevice = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+    AVCaptureDevice *videoDevice = [self cameraWithPosition:_devicePosition];
     [videoDevice lockForConfiguration:nil];
     videoDevice.activeFormat = self.defaultFormat;
     videoDevice.activeVideoMaxFrameDuration = defaultVideoMaxFrameDuration;
@@ -196,6 +208,49 @@
     
     if ([self.delegate respondsToSelector:@selector(didFinishRecordingToOutputFileAtURL:error:)]) {
         [self.delegate didFinishRecordingToOutputFileAtURL:outputFileURL error:error];
+    }
+}
+
+- (void)setDevicePosition:(AVCaptureDevicePosition)position{
+    AVCaptureDevice *captureDevice = [self cameraWithPosition:position];
+    if (!captureDevice) {
+        captureDevice = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+    }
+    for (AVCaptureInput *input in self.captureSession.inputs){
+        if ([input isKindOfClass:[AVCaptureDeviceInput class]]) {
+            [self.captureSession removeInput:input];
+        }
+    }
+    AVCaptureDeviceInput *videoIn = [AVCaptureDeviceInput
+                    deviceInputWithDevice:captureDevice
+                    error:nil];
+    [self.captureSession addInput:videoIn];
+}
+
+- (void)setFlashMode:(AVCaptureFlashMode)flashMode{
+    AVCaptureDevice *currentDevice = [self cameraWithPosition:_devicePosition];
+    NSError *error = nil;
+    
+    if (currentDevice.hasFlash) {
+        if ([currentDevice lockForConfiguration:&error]) {
+            if (flashMode == AVCaptureFlashModeAuto) {
+                if ([currentDevice isTorchModeSupported:AVCaptureTorchModeOn]) {
+                    [currentDevice setTorchMode:AVCaptureTorchModeOn];
+                }
+                if ([currentDevice isFlashModeSupported:AVCaptureFlashModeOff]) {
+                    [currentDevice setFlashMode:AVCaptureFlashModeOff];
+                }
+            } else {
+                if ([currentDevice isTorchModeSupported:AVCaptureTorchModeOff]) {
+                    [currentDevice setTorchMode:AVCaptureTorchModeOff];
+                }
+                if ([currentDevice isFlashModeSupported:(AVCaptureFlashMode)flashMode]) {
+                    [currentDevice setFlashMode:(AVCaptureFlashMode)flashMode];
+                }
+            }
+            
+            [currentDevice unlockForConfiguration];
+        }
     }
 }
 
